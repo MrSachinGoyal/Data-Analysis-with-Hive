@@ -1,4 +1,84 @@
-**Data Loading**
+Data Loading
+-------------
 
-Question Load the data into a Hive table. Create an external table with the given schema and load the data into the table from a text file or HDFS path.
+# Question: Load the data into a Hive table. Create an external table with the given schema and load the data into the table from a text file or HDFS path.
 
+Query:
+CREATE EXTERNAL TABLE car_insurance_cold_calls
+(  id INT,
+   Age INT,
+   Job STRING,
+   Marital STRING,
+   Education STRING,
+   Default INT,
+   Balance INT,
+   HHInsurance INT,
+   CarLoan INT,
+   Communication STRING,
+   LastContactDay INT,
+   LastContactMonth STRING,
+   NoOfContacts INT,
+   DaysPassed INT,
+   PrevAttempts INT,
+   Outcome STRING,
+   CallStart STRING,
+   CallEnd STRING,
+   CarInsurance INT
+)
+ROW FORMAT DELIMITED 
+FIELDS TERMINATED BY ','
+STORED AS TextFile
+LOCATION '/input_data/'
+TBLPROPERTIES ("skip.header.line.count"="1");
+
+Data Exploration
+----------------
+
+# Question:  How many records are there in the dataset?
+
+-- to print header of the table, we have to enable below property:
+SET hive.cli.print.header = true;
+
+Query:
+SELECT COUNT(*) AS total_records 
+FROM car_insurance_cold_calls;
+
+Analysis: 
+There are 4000 records in the given dataset.
+
+# Question: How many unique job categories are there?
+
+Query:
+SELECT COUNT(DISTINCT(Job)) AS job_categories 
+FROM car_insurance_cold_calls;
+
+Analysis: 
+There are 12 unique job categories in the dataset.
+
+# Question: What is the age distribution of customers in the dataset? Provide a breakdown by age group: 18-30, 31-45, 46-60, 61+.
+
+Query:
+WITH age_grp AS (
+SELECT 
+CASE WHEN Age >= 18 AND Age <= 30 THEN '18-30'
+     WHEN Age >= 31 AND Age <= 45 THEN '31-45'
+     WHEN Age >= 46 AND Age <= 60 THEN '46-60'
+ELSE '61+'
+END AS Age_group
+FROM car_insurance_cold_calls
+) 
+
+SELECT Age_group, COUNT(*) AS age_distribution 
+FROM age_grp
+GROUP BY Age_group;
+
+Analysis:
+age_group       age_distribution
+18-30           678
+31-45           2003
+46-60           1129
+61+             190
+
+# Question: Count the number of records that have missing values in any field.
+
+Query: 

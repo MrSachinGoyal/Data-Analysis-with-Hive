@@ -246,8 +246,11 @@ STORED AS TextFile
 TBLPROPERTIES ("skip.header.line.count"="1");
 
 -- Loading data into the car_insurance_multilevel_partitioned table
-INSERT OVERWRITE TABLE car_insurance_multilevel_partitioned PARTITION (Education, Marital) SELECT id, Age, Job, Default, Balance, HHInsurance, CarLoan, Communication, 
-LastContactDay, LastContactMonth, NoOfContacts, DaysPassed, PrevAttempts, Outcome, CallStart, CallEnd, CarInsurance, Education, Marital FROM car_insurance_cold_calls;
+INSERT OVERWRITE TABLE car_insurance_multilevel_partitioned PARTITION (Education, Marital) 
+SELECT id, Age, Job, Default, Balance, HHInsurance, CarLoan, Communication, 
+       LastContactDay, LastContactMonth, NoOfContacts, DaysPassed, PrevAttempts, Outcome, CallStart, 
+       CallEnd, CarInsurance, Education, Marital 
+FROM car_insurance_cold_calls;
 
 Analysis:
 -- We can see that in hive warehouse directory, parititions have been created for each education category.
@@ -303,13 +306,129 @@ Found 4 items
 -rw-r--r--   2 aspiringde2306 hadoop      92220 2023-11-18 11:22 /user/hive/warehouse/hive_assignments.db/car_insurance_cold_calls_bucketed/000002_0
 -rw-r--r--   2 aspiringde2306 hadoop     116620 2023-11-18 11:22 /user/hive/warehouse/hive_assignments.db/car_insurance_cold_calls_bucketed/000003_0
 
-# Question 15: 
+# Question 15: Add an additional partition on 'Job' to the partitioned table created earlier and move the data accordingly.
 
+Query:
+-- If we want to add an additional partition based on the 'Job' column to the existing partitioned table, we have to create new partitioned table and transfer the data. 
+   Hive doesn't support altering the partitioning of existing tables. 
 
+CREATE TABLE car_insurance_cold_calls_partitioned
+(  id INT,
+   Age INT,
+   Default INT,
+   Balance INT,
+   HHInsurance INT,
+   CarLoan INT,
+   Communication STRING,
+   LastContactDay INT,
+   LastContactMonth STRING,
+   NoOfContacts INT,
+   DaysPassed INT,
+   PrevAttempts INT,
+   Outcome STRING,
+   CallStart STRING,
+   CallEnd STRING,
+   CarInsurance INT
+)
+PARTITIONED BY (Education STRING, Marital STRING, Job STRING)
+ROW FORMAT DELIMITED 
+FIELDS TERMINATED BY ','
+STORED AS TextFile
+TBLPROPERTIES ("skip.header.line.count"="1");
 
+-- Loading data into the car_insurance_cold_calls_partitioned table
+INSERT OVERWRITE TABLE car_insurance_cold_calls_partitioned PARTITION (Education, Marital, Job) 
+SELECT 
+  id, Age, Default, Balance, HHInsurance, CarLoan, Communication,
+  LastContactDay, LastContactMonth, NoOfContacts, DaysPassed, PrevAttempts, Outcome,
+  CallStart, CallEnd, CarInsurance, Education, Marital, Job
+FROM car_insurance_multilevel_partitioned;
 
+-- Loading process may be failed if it creates dynamic partitions beyond limits, we can resolve this error by configuring below two properties:
+SET hive.exec.max.dynamic.partitions=200;
+SET hive.exec.max.dynamic.partitions.pernode=200;
 
+Analysis: 
+-- We can observe that multi-level partioning has been occured in hive warehouse directory
 
+aspiringde2306@hadoop-cluster-m:~$ hdfs dfs -ls /user/hive/warehouse/hive_assignments.db/car_insurance_cold_calls_partitioned
+Found 4 items
+drwxr-xr-x   - aspiringde2306 hadoop          0 2023-11-18 13:05 /user/hive/warehouse/hive_assignments.db/car_insurance_cold_calls_partitioned/education=NA
+drwxr-xr-x   - aspiringde2306 hadoop          0 2023-11-18 13:05 /user/hive/warehouse/hive_assignments.db/car_insurance_cold_calls_partitioned/education=primary
+drwxr-xr-x   - aspiringde2306 hadoop          0 2023-11-18 13:05 /user/hive/warehouse/hive_assignments.db/car_insurance_cold_calls_partitioned/education=secondary
+drwxr-xr-x   - aspiringde2306 hadoop          0 2023-11-18 13:05 /user/hive/warehouse/hive_assignments.db/car_insurance_cold_calls_partitioned/education=tertiary
+
+aspiringde2306@hadoop-cluster-m:~$ hdfs dfs -ls /user/hive/warehouse/hive_assignments.db/car_insurance_cold_calls_partitioned/education=secondary
+Found 3 items
+drwxr-xr-x   - aspiringde2306 hadoop          0 2023-11-18 13:05 /user/hive/warehouse/hive_assignments.db/car_insurance_cold_calls_partitioned/education=secondary/marital=divorced
+drwxr-xr-x   - aspiringde2306 hadoop          0 2023-11-18 13:05 /user/hive/warehouse/hive_assignments.db/car_insurance_cold_calls_partitioned/education=secondary/marital=married
+drwxr-xr-x   - aspiringde2306 hadoop          0 2023-11-18 13:05 /user/hive/warehouse/hive_assignments.db/car_insurance_cold_calls_partitioned/education=secondary/marital=single
+
+aspiringde2306@hadoop-cluster-m:~$ hdfs dfs -ls /user/hive/warehouse/hive_assignments.db/car_insurance_cold_calls_partitioned/education=secondary/marital=divorced
+Found 11 items
+drwxr-xr-x   - aspiringde2306 hadoop          0 2023-11-18 13:05 /user/hive/warehouse/hive_assignments.db/car_insurance_cold_calls_partitioned/education=secondary/marital=divorced/job=NA
+drwxr-xr-x   - aspiringde2306 hadoop          0 2023-11-18 13:05 /user/hive/warehouse/hive_assignments.db/car_insurance_cold_calls_partitioned/education=secondary/marital=divorced/job=admin.
+drwxr-xr-x   - aspiringde2306 hadoop          0 2023-11-18 13:05 /user/hive/warehouse/hive_assignments.db/car_insurance_cold_calls_partitioned/education=secondary/marital=divorced/job=blue-collar
+drwxr-xr-x   - aspiringde2306 hadoop          0 2023-11-18 13:05 /user/hive/warehouse/hive_assignments.db/car_insurance_cold_calls_partitioned/education=secondary/marital=divorced/job=entrepreneur
+drwxr-xr-x   - aspiringde2306 hadoop          0 2023-11-18 13:05 /user/hive/warehouse/hive_assignments.db/car_insurance_cold_calls_partitioned/education=secondary/marital=divorced/job=housemaid
+drwxr-xr-x   - aspiringde2306 hadoop          0 2023-11-18 13:05 /user/hive/warehouse/hive_assignments.db/car_insurance_cold_calls_partitioned/education=secondary/marital=divorced/job=management
+drwxr-xr-x   - aspiringde2306 hadoop          0 2023-11-18 13:05 /user/hive/warehouse/hive_assignments.db/car_insurance_cold_calls_partitioned/education=secondary/marital=divorced/job=retired
+drwxr-xr-x   - aspiringde2306 hadoop          0 2023-11-18 13:05 /user/hive/warehouse/hive_assignments.db/car_insurance_cold_calls_partitioned/education=secondary/marital=divorced/job=self-employed
+drwxr-xr-x   - aspiringde2306 hadoop          0 2023-11-18 13:05 /user/hive/warehouse/hive_assignments.db/car_insurance_cold_calls_partitioned/education=secondary/marital=divorced/job=services
+drwxr-xr-x   - aspiringde2306 hadoop          0 2023-11-18 13:05 /user/hive/warehouse/hive_assignments.db/car_insurance_cold_calls_partitioned/education=secondary/marital=divorced/job=technician
+drwxr-xr-x   - aspiringde2306 hadoop          0 2023-11-18 13:05 /user/hive/warehouse/hive_assignments.db/car_insurance_cold_calls_partitioned/education=secondary/marital=divorced/job=unemployed
+
+# Question 16: Increase the number of buckets in the bucketed table to 10 and redistribute the data.
+
+Query: 
+-- In Hive, once a table is bucketed, the allocated number of buckets remains fixed and cannot be altered. Bucketing is an immutable process that occurs during table creation. 
+   To increase the number of buckets, a new table must be created with the desired bucket count, and data must be inserted from the existing table into the new one.
+
+CREATE TABLE car_insurance_cold_calls_bucketed_new
+(  id INT,
+   Age INT,
+   Job STRING,
+   Marital STRING,
+   Education STRING,
+   Default INT,
+   Balance INT,
+   HHInsurance INT,
+   CarLoan INT,
+   Communication STRING,
+   LastContactDay INT,
+   LastContactMonth STRING,
+   NoOfContacts INT,
+   DaysPassed INT,
+   PrevAttempts INT,
+   Outcome STRING,
+   CallStart STRING,
+   CallEnd STRING,
+   CarInsurance INT
+)
+CLUSTERED BY (Age) INTO 10 BUCKETS
+ROW FORMAT DELIMITED 
+FIELDS TERMINATED BY ','
+STORED AS TextFile
+TBLPROPERTIES ("skip.header.line.count"="1");
+
+-- Loading data into the new car_insurance_cold_calls_bucketed_new table
+INSERT OVERWRITE TABLE car_insurance_cold_calls_bucketed_new SELECT * FROM car_insurance_cold_calls_bucketed;
+
+Analysis:
+-- We can see that 10 new buckets have been created inside hive warehouse directory
+
+aspiringde2306@hadoop-cluster-m:~$ hdfs dfs -ls /user/hive/warehouse/hive_assignments.db/car_insurance_cold_calls_bucketed_new
+Found 10 items
+-rw-r--r--   2 aspiringde2306 hadoop      36610 2023-11-18 13:16 /user/hive/warehouse/hive_assignments.db/car_insurance_cold_calls_bucketed_new/000000_0
+-rw-r--r--   2 aspiringde2306 hadoop      45278 2023-11-18 13:16 /user/hive/warehouse/hive_assignments.db/car_insurance_cold_calls_bucketed_new/000001_0
+-rw-r--r--   2 aspiringde2306 hadoop      30246 2023-11-18 13:16 /user/hive/warehouse/hive_assignments.db/car_insurance_cold_calls_bucketed_new/000002_0
+-rw-r--r--   2 aspiringde2306 hadoop      21704 2023-11-18 13:16 /user/hive/warehouse/hive_assignments.db/car_insurance_cold_calls_bucketed_new/000003_0
+-rw-r--r--   2 aspiringde2306 hadoop      63282 2023-11-18 13:16 /user/hive/warehouse/hive_assignments.db/car_insurance_cold_calls_bucketed_new/000004_0
+-rw-r--r--   2 aspiringde2306 hadoop      76249 2023-11-18 13:16 /user/hive/warehouse/hive_assignments.db/car_insurance_cold_calls_bucketed_new/000005_0
+-rw-r--r--   2 aspiringde2306 hadoop       3812 2023-11-18 13:16 /user/hive/warehouse/hive_assignments.db/car_insurance_cold_calls_bucketed_new/000006_0
+-rw-r--r--   2 aspiringde2306 hadoop      24373 2023-11-18 13:16 /user/hive/warehouse/hive_assignments.db/car_insurance_cold_calls_bucketed_new/000007_0
+-rw-r--r--   2 aspiringde2306 hadoop      44142 2023-11-18 13:16 /user/hive/warehouse/hive_assignments.db/car_insurance_cold_calls_bucketed_new/000008_0
+-rw-r--r--   2 aspiringde2306 hadoop      17548 2023-11-18 13:16 /user/hive/warehouse/hive_assignments.db/car_insurance_cold_calls_bucketed_new/000009_0
 
 
 

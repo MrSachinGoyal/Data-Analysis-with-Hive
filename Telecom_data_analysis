@@ -1,0 +1,137 @@
+Data Loading
+-------------
+
+# Question 1: Download the dataset and load it into a Hive table.
+
+-- Two datasets have been provided for this assignment:
+1. Customer_demographics.csv
+2. Telecom_customer_churn_data.csv  
+
+Query:
+-- In this assignment, I am creating table as well as loading data for both datasets mentioned above.
+
+CREATE TABLE customer_demographics (
+  customerID STRING,
+  City STRING,
+  Lat DOUBLE,
+  Long DOUBLE,
+  country STRING,
+  iso2 STRING,
+  State STRING
+)
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY ','
+STORED AS TEXTFILE
+TBLPROPERTIES("skip.header.line.count" = "1");
+
+-- Loading data into customer_demographics table from local file system
+LOAD DATA LOCAL INPATH 'file:///home/aspiringde2306/CustomerDemographics.csv' into TABLE customer_demographics;
+
+CREATE TABLE telecom_customer_data (
+  customerID STRING,
+  gender STRING,
+  SeniorCitizen INT,
+  Partner STRING,
+  Dependents STRING,
+  tenure INT,
+  PhoneService STRING,
+  MultipleLines STRING,
+  InternetService STRING,
+  OnlineSecurity STRING,
+  OnlineBackup STRING,
+  DeviceProtection STRING,
+  TechSupport STRING,
+  StreamingTV STRING,
+  StreamingMovies STRING,
+  Contract STRING,
+  PaperlessBilling STRING,
+  PaymentMethod STRING,
+  MonthlyCharges DOUBLE,
+  TotalCharges DOUBLE,
+  Churn STRING
+)
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY ','
+STORED AS TEXTFILE
+TBLPROPERTIES("skip.header.line.count" = "1");
+
+-- Loading data into the telecom_customer_data table from local file system
+LOAD DATA LOCAL INPATH 'file:///home/aspiringde2306/Telecom_customer_churn_data.csv' into TABLE telecom_customer_data;
+
+Data Exploration
+-----------------
+
+# Question 2: Write a HiveQL query to find the total number of customers in the dataset?
+
+Query:
+SELECT COUNT(DISTINCT(CustomerID)) AS total_customers
+FROM telecom_customer_data;
+
+Analysis:
+total_customers
+----------------
+7043
+
+# Question 3: Write a HiveQL query to find the number of customers who have churned?
+
+Query: 
+SELECT COUNT(*) AS total_churned_customers
+FROM telecom_customer_data
+WHERE Churn = 'Yes';
+
+Analysis:
+total_churned_customers
+------------------------
+1869
+
+# Question 4: Analyze the distribution of customers based on gender and SeniorCitizen status?
+
+Query:
+-- In SeniorCitizen Column, O implies customer is not a senior citizen and 1 implies customer is a senior citizen.
+
+SELECT gender, 
+       SeniorCitizen, 
+       COUNT(*) AS count
+FROM telecom_customer_data
+GROUP BY gender, SeniorCitizen;
+
+Analysis:
+gender  seniorcitizen   count
+------------------------------
+Female      0            2920
+Female      1            568
+Male        0            2981
+Male        1            574
+
+
+# Question 5: Determine the total charge to the company due to churned customers?
+
+Query:
+SELECT ROUND(SUM(TotalCharges),2) AS total_charges_to_company
+FROM telecom_customer_data
+WHERE Churn = 'Yes';
+
+Analysis:
+total_charges_to_company
+-------------------------
+2862926.9
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

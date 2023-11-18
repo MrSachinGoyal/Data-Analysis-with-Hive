@@ -1,7 +1,7 @@
-Data Loading
--------------
+Problem 1: Data Loading
+------------------------
 
-# Question: Load the data into a Hive table. Create an external table with the given schema and load the data into the table from a text file or HDFS path.
+# Question 1: Load the data into a Hive table. Create an external table with the given schema and load the data into the table from a text file or HDFS path.
 
 Query:
 CREATE EXTERNAL TABLE car_insurance_cold_calls
@@ -31,10 +31,10 @@ STORED AS TextFile
 LOCATION '/input_data/'
 TBLPROPERTIES ("skip.header.line.count"="1");
 
-Data Exploration
-----------------
+Problem 2: Data Exploration
+---------------------------
 
-# Question:  How many records are there in the dataset?
+# Question 2:  How many records are there in the dataset?
 
 -- to print header of the table, we have to enable below property:
 SET hive.cli.print.header = true;
@@ -46,7 +46,7 @@ FROM car_insurance_cold_calls;
 Analysis: 
 There are 4000 records in the given dataset.
 
-# Question: How many unique job categories are there?
+# Question 3: How many unique job categories are there?
 
 Query:
 SELECT COUNT(DISTINCT(Job)) AS job_categories 
@@ -55,7 +55,7 @@ FROM car_insurance_cold_calls;
 Analysis: 
 There are 12 unique job categories in the dataset.
 
-# Question: What is the age distribution of customers in the dataset? Provide a breakdown by age group: 18-30, 31-45, 46-60, 61+.
+# Question 4: What is the age distribution of customers in the dataset? Provide a breakdown by age group: 18-30, 31-45, 46-60, 61+.
 
 Query:
 WITH age_grp AS (
@@ -74,11 +74,257 @@ GROUP BY Age_group;
 
 Analysis:
 age_group       age_distribution
+---------------------------------
 18-30           678
 31-45           2003
 46-60           1129
 61+             190
 
-# Question: Count the number of records that have missing values in any field.
+# Question 5: Determine the number of unique 'Outcome' values and their respective counts.
 
 Query: 
+SELECT Outcome, COUNT(*) AS count
+FROM car_insurance_cold_calls
+GROUP BY Outcome;
+
+Analysis:
+outcome  count
+---------------
+NA       3042
+failure  437
+other    195
+success  326
+
+# Question 6: Find the number of customers who have both a car loan and home insurance?
+
+Query:
+SELECT COUNT(*) FROM car_insurance_cold_calls
+WHERE (carloan = 1) AND (HHInsurance = 1);
+
+Analysis:
+There are 322 customers in the dataset who have both a car loan and home insurance.
+
+Problem 3: Aggregations
+-----------------------
+
+# Question 7: What is the average, minimum, and maximum balance for each job category?
+
+Query: 
+SELECT Job, 
+       ROUND(AVG(balance),2) AS avg_balance,
+       MIN(balance) AS min_balance,
+       MAX(balance) AS max_balance
+FROM car_insurance_cold_calls
+GROUP BY Job;
+
+Analysis:
+Job               avg_balance     min_balance     max_balance
+---------------------------------------------------------------
+NA                1129.63         -295             4465
+admin.            1212.04         -982             19213
+blue-collar       1216.96         -931             21522
+entrepreneur      1689.15         -799             27624
+housemaid         859.72          -278             4312
+management        2135.26         -1246            98417
+retired           2267.39         -1206            37127
+self-employed     1964.59         -3058            52587
+services          851.42          -1730            11516
+student           1420.84         -679             23878
+technician        1414.69         -1317            45248
+unemployed        1423.02         -581             17747
+
+# Question 8: Find the total number of customers with and without car insurance?
+
+Query:
+SELECT CarInsurance, 
+       COUNT(*) AS num_customers
+FROM car_insurance_cold_calls
+GROUP BY CarInsurance;
+
+Analysis:
+-- O means No and 1 means YES.
+
+carinsurance    num_customers
+0                2396
+1                1604
+
+# Question 9: Count the number of customers for each communication type?
+
+Query:
+SELECT COALESCE(Communication, 'Others'),
+       COUNT(*) AS total_customers
+FROM car_insurance_cold_calls
+GROUP BY Communication;
+
+Analysis:
+communication    total_customers
+-----------------------------------
+NA               902
+cellular         2831
+telephone        267
+
+# Question 10: Calculate the sum of 'Balance' for each 'Communication' type?
+
+Query:
+SELECT Communication, 
+       SUM(Balance) AS total_balance
+FROM car_insurance_cold_calls
+GROUP BY Communication;
+
+Analysis:
+communication   total_balance
+------------------------------
+NA               1091772
+cellular         4464294
+telephone        575683
+
+# Question 11: Count the number of 'PrevAttempts' for each 'Outcome' type?
+
+Query:
+SELECT Outcome,
+       COUNT(PrevAttempts) AS prev_attempts_count
+FROM car_insurance_cold_calls
+GROUP BY Outcome;
+
+Analysis:
+outcome       prev_attempts_count
+----------------------------------
+NA               3042
+failure          437
+other            195
+success          326
+
+# Question 12: Calculate the average 'NoOfContacts' for people with and without 'CarInsurance'.
+
+Query:
+SELECT CarInsurance, 
+       ROUND(AVG(NoOfContacts),2) AS avg_num_contacts
+FROM car_insurance_cold_calls
+GROUP BY CarInsurance;
+
+Analysis:
+-- O means No and 1 means YES.
+
+carinsurance    avg_num_contacts
+-----------------------------------
+0                   2.9
+1                   2.18
+
+Problem 4: Partitioning and Bucketing
+--------------------------------------
+
+# Question 13: Create a partitioned table on 'Education' and 'Marital' status. Load data from the original table to this new partitioned table
+
+-- To enable dynamic partitioning in Hive, set below mentioned property:
+SET hive.exec.dynamic.partition = true;
+SET hive.exec.dynamic.partition.mode = nonstrict;
+
+Query:
+CREATE TABLE car_insurance_multilevel_partitioned
+(  id INT,
+   Age INT,
+   Job STRING,
+   Default INT,
+   Balance INT,
+   HHInsurance INT,
+   CarLoan INT,
+   Communication STRING,
+   LastContactDay INT,
+   LastContactMonth STRING,
+   NoOfContacts INT,
+   DaysPassed INT,
+   PrevAttempts INT,
+   Outcome STRING,
+   CallStart STRING,
+   CallEnd STRING,
+   CarInsurance INT
+)
+PARTITIONED BY (Education STRING, Marital STRING)
+ROW FORMAT DELIMITED 
+FIELDS TERMINATED BY ','
+STORED AS TextFile
+TBLPROPERTIES ("skip.header.line.count"="1");
+
+-- Loading data into the car_insurance_multilevel_partitioned table
+INSERT OVERWRITE TABLE car_insurance_multilevel_partitioned PARTITION (Education, Marital) SELECT id, Age, Job, Default, Balance, HHInsurance, CarLoan, Communication, 
+LastContactDay, LastContactMonth, NoOfContacts, DaysPassed, PrevAttempts, Outcome, CallStart, CallEnd, CarInsurance, Education, Marital FROM car_insurance_cold_calls;
+
+Analysis:
+-- We can see that in hive warehouse directory, parititions have been created for each education category.
+aspiringde2306@hadoop-cluster-m:~$ hdfs dfs -ls /user/hive/warehouse/hive_assignments.db/car_insurance_multilevel_partitioned
+Found 4 items
+drwxr-xr-x   - aspiringde2306 hadoop          0 2023-11-18 11:02 /user/hive/warehouse/hive_assignments.db/car_insurance_multilevel_partitioned/education=NA
+drwxr-xr-x   - aspiringde2306 hadoop          0 2023-11-18 11:02 /user/hive/warehouse/hive_assignments.db/car_insurance_multilevel_partitioned/education=primary
+drwxr-xr-x   - aspiringde2306 hadoop          0 2023-11-18 11:02 /user/hive/warehouse/hive_assignments.db/car_insurance_multilevel_partitioned/education=secondary
+drwxr-xr-x   - aspiringde2306 hadoop          0 2023-11-18 11:02 /user/hive/warehouse/hive_assignments.db/car_insurance_multilevel_partitioned/education=tertiary
+
+# Question 14: Create a bucketed table on 'Age', bucketed into 4 groups (as per the age groups mentioned above). Load data from the original table into this bucketed table.
+
+Query:
+-- To use Bucketing in hive, enable below property:
+SET hive.enforce.bucketing = true;
+
+CREATE TABLE car_insurance_cold_calls_bucketed
+(  id INT,
+   Age INT,
+   Job STRING,
+   Marital STRING,
+   Education STRING,
+   Default INT,
+   Balance INT,
+   HHInsurance INT,
+   CarLoan INT,
+   Communication STRING,
+   LastContactDay INT,
+   LastContactMonth STRING,
+   NoOfContacts INT,
+   DaysPassed INT,
+   PrevAttempts INT,
+   Outcome STRING,
+   CallStart STRING,
+   CallEnd STRING,
+   CarInsurance INT
+)
+CLUSTERED BY (Age) INTO 4 BUCKETS
+ROW FORMAT DELIMITED 
+FIELDS TERMINATED BY ','
+STORED AS TextFile
+TBLPROPERTIES ("skip.header.line.count"="1");
+
+-- Loading data into the car_insurance_cold_calls_bucketed table
+INSERT OVERWRITE TABLE car_insurance_cold_calls_bucketed SELECT * FROM car_insurance_cold_calls;
+
+Analysis:
+-- We can see that in hive warehouse directory 4 buckets have been created on the basis of age.
+aspiringde2306@hadoop-cluster-m:~$ hdfs dfs -ls /user/hive/warehouse/hive_assignments.db/car_insurance_cold_calls_bucketed
+Found 4 items
+-rw-r--r--   2 aspiringde2306 hadoop      86042 2023-11-18 11:22 /user/hive/warehouse/hive_assignments.db/car_insurance_cold_calls_bucketed/000000_0
+-rw-r--r--   2 aspiringde2306 hadoop      68722 2023-11-18 11:22 /user/hive/warehouse/hive_assignments.db/car_insurance_cold_calls_bucketed/000001_0
+-rw-r--r--   2 aspiringde2306 hadoop      92220 2023-11-18 11:22 /user/hive/warehouse/hive_assignments.db/car_insurance_cold_calls_bucketed/000002_0
+-rw-r--r--   2 aspiringde2306 hadoop     116620 2023-11-18 11:22 /user/hive/warehouse/hive_assignments.db/car_insurance_cold_calls_bucketed/000003_0
+
+# Question 15: 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

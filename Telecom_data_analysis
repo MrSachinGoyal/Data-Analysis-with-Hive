@@ -67,10 +67,13 @@ Query:
 SELECT COUNT(DISTINCT(CustomerID)) AS total_customers
 FROM telecom_customer_data;
 
+Result:
+| Total_Customers |
+|-----------------|
+| 7043            |
+
 Analysis:
-total_customers
-----------------
-7043
+-- There are total 7043 customers in the dataset.
 
 # Question 3: Write a HiveQL query to find the number of customers who have churned?
 
@@ -79,10 +82,13 @@ SELECT COUNT(*) AS total_churned_customers
 FROM telecom_customer_data
 WHERE Churn = 'Yes';
 
+Result:
+| Total_Churned_Customers |
+|-------------------------|
+| 1869                    |
+
 Analysis:
-total_churned_customers
-------------------------
-1869
+-- There are 26.5% churned customers in the dataset.
 
 # Question 4: Analyze the distribution of customers based on gender and SeniorCitizen status?
 
@@ -95,14 +101,17 @@ SELECT gender,
 FROM telecom_customer_data
 GROUP BY gender, SeniorCitizen;
 
-Analysis:
-gender  seniorcitizen   count
-------------------------------
-Female      0            2920
-Female      1            568
-Male        0            2981
-Male        1            574
+Result:
+| Gender | SeniorCitizen | Count |
+|--------|---------------|-------|
+| Female | 0             | 2920  |
+| Female | 1             | 568   |
+| Male   | 0             | 2981  |
+| Male   | 1             | 574   |
 
+Analysis:
+-- Approximately 16% female are senior citizens and 16% male are senior citizens.
+-- Collectively 16.21% customers are senior citizens.
 
 # Question 5: Determine the total charge to the company due to churned customers?
 

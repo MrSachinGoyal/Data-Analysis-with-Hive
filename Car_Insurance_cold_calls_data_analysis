@@ -44,7 +44,7 @@ SELECT COUNT(*) AS total_records
 FROM car_insurance_cold_calls;
 
 Analysis: 
-There are 4000 records in the given dataset.
+-- There are 4000 records in the given dataset.
 
 # Question 3: How many unique job categories are there?
 
@@ -53,7 +53,7 @@ SELECT COUNT(DISTINCT(Job)) AS job_categories
 FROM car_insurance_cold_calls;
 
 Analysis: 
-There are 12 unique job categories in the dataset.
+-- There are 12 unique job categories in the dataset.
 
 # Question 4: What is the age distribution of customers in the dataset? Provide a breakdown by age group: 18-30, 31-45, 46-60, 61+.
 
@@ -72,13 +72,17 @@ SELECT Age_group, COUNT(*) AS age_distribution
 FROM age_grp
 GROUP BY Age_group;
 
+Result:
+| age_group | age_distribution |
+|-----------|-------------------|
+| 18-30     | 678               |
+| 31-45     | 2003              |
+| 46-60     | 1129              |
+| 61+       | 190               |
+
 Analysis:
-age_group       age_distribution
----------------------------------
-18-30           678
-31-45           2003
-46-60           1129
-61+             190
+-- Based on the results, the majority of customers in the campaign fall within the age group of 31-45, with 2,003 customers.
+
 
 # Question 5: Determine the number of unique 'Outcome' values and their respective counts.
 
@@ -87,14 +91,17 @@ SELECT Outcome, COUNT(*) AS count
 FROM car_insurance_cold_calls
 GROUP BY Outcome;
 
-Analysis:
-outcome  count
----------------
-NA       3042
-failure  437
-other    195
-success  326
+Result:
+| outcome | count |
+|---------|-------|
+| NA      | 3042  |
+| failure | 437   |
+| other   | 195   |
+| success | 326   |
 
+Analysis:
+-- From the above results, it can be concluded that the most frequent outcome is NA with a count of 3042 occurences. It suggests that a significant portion of the outcomes for cold calls are not recorded.
+   
 # Question 6: Find the number of customers who have both a car loan and home insurance?
 
 Query:
@@ -102,7 +109,7 @@ SELECT COUNT(*) FROM car_insurance_cold_calls
 WHERE (carloan = 1) AND (HHInsurance = 1);
 
 Analysis:
-There are 322 customers in the dataset who have both a car loan and home insurance.
+-- There are 322 customers in the dataset who have both a car loan and home insurance.
 
 Problem 3: Aggregations
 -----------------------
@@ -115,23 +122,29 @@ SELECT Job,
        MIN(balance) AS min_balance,
        MAX(balance) AS max_balance
 FROM car_insurance_cold_calls
-GROUP BY Job;
+GROUP BY Job
+ORDER BY avg_balance DESC, max_balance DESC;
+
+Result:
+| Job            | avg_balance | min_balance | max_balance |
+|----------------|-------------|-------------|-------------|
+| NA             | 1129.63     | -295        | 4465        |
+| admin.         | 1212.04     | -982        | 19213       |
+| blue-collar    | 1216.96     | -931        | 21522       |
+| entrepreneur   | 1689.15     | -799        | 27624       |
+| housemaid      | 859.72      | -278        | 4312        |
+| management     | 2135.26     | -1246       | 98417       |
+| retired        | 2267.39     | -1206       | 37127       |
+| self-employed  | 1964.59     | -3058       | 52587       |
+| services       | 851.42      | -1730       | 11516       |
+| student        | 1420.84     | -679        | 23878       |
+| technician     | 1414.69     | -1317       | 45248       |
+| unemployed     | 1423.02     | -581        | 17747       |
 
 Analysis:
-Job               avg_balance     min_balance     max_balance
----------------------------------------------------------------
-NA                1129.63         -295             4465
-admin.            1212.04         -982             19213
-blue-collar       1216.96         -931             21522
-entrepreneur      1689.15         -799             27624
-housemaid         859.72          -278             4312
-management        2135.26         -1246            98417
-retired           2267.39         -1206            37127
-self-employed     1964.59         -3058            52587
-services          851.42          -1730            11516
-student           1420.84         -679             23878
-technician        1414.69         -1317            45248
-unemployed        1423.02         -581             17747
+-- Management and retired professionals have the highest average balances across all job categories with 2135.26 and 2267.39, respectively.
+-- Self employed people have the lowest minimum balance among job categories with -3058.
+-- Management professionals have the highest maximum balance among job categories, reaching 98,417. 
 
 # Question 8: Find the total number of customers with and without car insurance?
 
@@ -141,27 +154,34 @@ SELECT CarInsurance,
 FROM car_insurance_cold_calls
 GROUP BY CarInsurance;
 
-Analysis:
+Result:
 -- O means No and 1 means YES.
 
-carinsurance    num_customers
-0                2396
-1                1604
+| carinsurance | num_customers |
+|--------------|---------------|
+| 0            | 2396          |
+| 1            | 1604          |
+
+Analysis:
+-- Approximately 40% people bought the car insurance whereas 60% denied.
 
 # Question 9: Count the number of customers for each communication type?
 
 Query:
-SELECT COALESCE(Communication, 'Others'),
+SELECT (Communication),
        COUNT(*) AS total_customers
 FROM car_insurance_cold_calls
 GROUP BY Communication;
 
+Result:
+| communication | total_customers |
+|---------------|------------------|
+| NA            | 902              |
+| cellular      | 2831             |
+| telephone     | 267              |
+
 Analysis:
-communication    total_customers
------------------------------------
-NA               902
-cellular         2831
-telephone        267
+-- Approximately 71% of the customers were contacted via cellular communication like mobiles, smartphones, etc.
 
 # Question 10: Calculate the sum of 'Balance' for each 'Communication' type?
 
@@ -171,12 +191,15 @@ SELECT Communication,
 FROM car_insurance_cold_calls
 GROUP BY Communication;
 
+Result:
+| communication | total_balance |
+|---------------|---------------|
+| NA            | 1091772       |
+| cellular      | 4464294       |
+| telephone     | 575683        |
+
 Analysis:
-communication   total_balance
-------------------------------
-NA               1091772
-cellular         4464294
-telephone        575683
+-- Cellular communication has the highest total balance among the specified communication methods. 
 
 # Question 11: Count the number of 'PrevAttempts' for each 'Outcome' type?
 
@@ -186,13 +209,17 @@ SELECT Outcome,
 FROM car_insurance_cold_calls
 GROUP BY Outcome;
 
+Result:
+| outcome | prev_attempts_count |
+|---------|----------------------|
+| NA      | 3042                 |
+| failure | 437                  |
+| other   | 195                  |
+| success | 326                  |
+
 Analysis:
-outcome       prev_attempts_count
-----------------------------------
-NA               3042
-failure          437
-other            195
-success          326
+-- From the above results, it can be concluded that nearly 76% of previous attempts had information missing or not available.
+-- 10% of previous attempts resulted in failures whereas 8% resulted in success.
 
 # Question 12: Calculate the average 'NoOfContacts' for people with and without 'CarInsurance'.
 
@@ -202,13 +229,17 @@ SELECT CarInsurance,
 FROM car_insurance_cold_calls
 GROUP BY CarInsurance;
 
-Analysis:
+Result:
 -- O means No and 1 means YES.
 
-carinsurance    avg_num_contacts
------------------------------------
-0                   2.9
-1                   2.18
+| carinsurance | avg_num_contacts |
+|--------------|------------------|
+| 0            | 2.9              |
+| 1            | 2.18             |
+
+Analysis:
+-- The average number of contacts is smaller for customers who bought car insurance compared to those who did not. This suggests that, on average, customers who eventually purchased car 
+   insurance required fewer contacts during the campaign.
 
 Problem 4: Partitioning and Bucketing
 --------------------------------------
@@ -430,13 +461,250 @@ Found 10 items
 -rw-r--r--   2 aspiringde2306 hadoop      44142 2023-11-18 13:16 /user/hive/warehouse/hive_assignments.db/car_insurance_cold_calls_bucketed_new/000008_0
 -rw-r--r--   2 aspiringde2306 hadoop      17548 2023-11-18 13:16 /user/hive/warehouse/hive_assignments.db/car_insurance_cold_calls_bucketed_new/000009_0
 
+Problem 5: Optimized Joins
+---------------------------
+
+# Question 17: Join the original table with the partitioned table and find out the average 'Balance' for each 'Job' and 'Education' level
+
+Query:
+SELECT t1.Job, 
+       t1.Education, 
+       ROUND(AVG(t1.Balance),2 ) AS avg_balance
+FROM car_insurance_cold_calls t1
+INNER JOIN car_insurance_cold_calls_partitioned t2
+ON t1.id = t2.id
+GROUP BY t1.Job, t1.Education
+ORDER BY avg_balance DESC;
+
+Result:
+| Job            | Education | Avg_Balance |
+|----------------|-----------|-------------|
+| technician     | NA        | 3446.17     |
+| NA             | secondary | 2826.0      |
+| technician     | primary   | 2720.36     |
+| unemployed     | tertiary  | 2358.55     |
+| retired        | primary   | 2288.46     |
+| management     | tertiary  | 2214.81     |
+| retired        | secondary | 2212.98     |
+| services       | NA        | 2053.2      |
+| retired        | tertiary  | 2046.41     |
+| management     | primary   | 1936.89     |
+| admin.         | NA        | 1878.36     |
+| entrepreneur   | secondary | 1871.34     |
+| self-employed  | tertiary  | 1854.0      |
+| unemployed     | primary   | 1775.52     |
+| student        | secondary | 1754.32     |
+| management     | secondary | 1739.29     |
+| entrepreneur   | primary   | 1692.09     |
+| entrepreneur   | NA        | 1580.5      |
+| technician     | tertiary  | 1521.26     |
+| entrepreneur   | tertiary  | 1478.06     |
+| housemaid      | NA        | 1473.0      |
+| blue-collar    | tertiary  | 1469.8      |
+| student        | tertiary  | 1445.1      |
+| NA             | primary   | 1422.5      |
+| blue-collar    | primary   | 1397.6      |
+| blue-collar    | NA        | 1382.93     |
+| self-employed  | NA        | 1273.4      |
+| admin.         | secondary | 1265.64     |
+| technician     | secondary | 1237.18     |
+| management     | NA        | 1176.09     |
+| self-employed  | secondary | 1105.67     |
+| unemployed     | secondary | 1098.43     |
+| blue-collar    | secondary | 1097.28     |
+| services       | tertiary  | 1088.09     |
+| retired        | NA        | 1029.18     |
+| admin.         | tertiary  | 996.15      |
+| unemployed     | NA        | 970.0       |
+| NA             | NA        | 963.2       |
+| services       | secondary | 837.94      |
+| housemaid      | secondary | 833.5       |
+| housemaid      | tertiary  | 830.15      |
+| housemaid      | primary   | 817.74      |
+| student        | NA        | 815.75      |
+| student        | primary   | 701.67      |
+| services       | primary   | 617.04      |
+| self-employed  | primary   | 229.33      |
+| admin.         | primary   | 52.88       |
+
+Analysis:
+-- Customers with the Job title 'Technician' have the highest average balance.
+-- Among customers with the primary education, those with the Job title 'admin' have the lowest average balance.
+
+# Question 18: Join the original table with the bucketed table and calculate the total 'NoOfContacts' for each 'Age' group.
+
+Query:
+SELECT t1.Age,  
+       SUM(t1.NoOfContacts) AS total_num_contacts
+FROM car_insurance_cold_calls t1
+INNER JOIN car_insurance_cold_calls_bucketed_new t2
+ON t1.id = t2.id
+GROUP BY t1.Age;
+
+Result:
+| t1.age | total_num_contacts |
+|--------|---------------------|
+| 18     | 7                   |
+| 19     | 35                  |
+| 20     | 13                  |
+| 21     | 22                  |
+| 22     | 49                  |
+| 23     | 38                  |
+| 24     | 56                  |
+| 25     | 118                 |
+| 26     | 149                 |
+| 27     | 187                 |
+| 28     | 224                 |
+| 29     | 266                 |
+| 30     | 388                 |
+| 31     | 526                 |
+| 32     | 435                 |
+| 33     | 416                 |
+| 34     | 364                 |
+| 35     | 419                 |
+| 36     | 379                 |
+| 37     | 343                 |
+| 38     | 430                 |
+| 39     | 286                 |
+| 40     | 277                 |
+| 41     | 246                 |
+| 42     | 303                 |
+| 43     | 273                 |
+| 44     | 274                 |
+| 45     | 303                 |
+| 46     | 292                 |
+| 47     | 257                 |
+| 48     | 238                 |
+| 49     | 242                 |
+| 50     | 164                 |
+| 51     | 259                 |
+| 52     | 273                 |
+| 53     | 181                 |
+| 54     | 189                 |
+| 55     | 138                 |
+| 56     | 191                 |
+| 57     | 204                 |
+| 58     | 240                 |
+| 59     | 187                 |
+| 60     | 145                 |
+| 61     | 49                  |
+| 62     | 26                  |
+| 63     | 27                  |
+| 64     | 23                  |
+| 65     | 10                  |
+| 66     | 9                   |
+| 67     | 18                  |
+| 68     | 7                   |
+| 69     | 20                  |
+| 70     | 10                  |
+| 71     | 6                   |
+| 72     | 24                  |
+| 73     | 14                  |
+| 75     | 12                  |
+| 76     | 10                  |
+| 77     | 16                  |
+| 78     | 8                   |
+| 79     | 10                  |
+| 80     | 18                  |
+| 81     | 4                   |
+| 82     | 5                   |
+| 83     | 11                  |
+| 84     | 3                   |
+| 86     | 2                   |
+| 87     | 1                   |
+| 95     | 17                  |
+
+Analysis:
+-- Customers whose age lies between 31-35 had received highest number of calls.
+-- Customers whose age is beyond 60 years or retired professionals had received fewer calls during the campaign. 
+
+# Question 19: Join the partitioned table and the bucketed table based on the 'Id' field and find the total balance for each education level and marital status for each age group.
+
+Query: 
+SELECT t1.Age, 
+       t1.Education, 
+       t1.Marital,
+       SUM(t1.balance) AS total_balance
+FROM car_insurance_cold_calls_partitioned t1
+INNER JOIN car_insurance_cold_calls_bucketed_new t2
+ON t1.id = t2.id
+GROUP BY t1.Age, t1.Education, t1.Marital;
+
+Result:
+-- These are top 5 records with respect to total balance
+| t1.age | t1.education | t1.marital | total_balance |
+|--------|--------------|------------|---------------|
+| 31     | tertiary     | single     | 142760        |
+| 48     | secondary    | married    | 125022        |
+| 34     | tertiary     | single     | 112052        |
+| 59     | tertiary     | married    | 111772        |
+| 32     | tertiary     | single     | 93036         |
 
 
+-- These are bottom 5 records with respect to total balance
+| t1.age | t1.education | t1.marital | total_balance |
+|--------|--------------|------------|---------------|
+| 31     | secondary    | divorced   | -1481         |
+| 30     | primary      | married    | -481          |
+| 22     | secondary    | married    | -295          |
+| 26     | NA           | married    | -277          |
+| 52     | primary      | divorced   | -249          |
 
 
+Analysis:
+-- Customers who are in their early 30s, specifically 31 and 32 years old, and are single with tertiary education have significantly high total balances, exceeding 90,000.
+-- Customers in their early 30s or mid-20s, either married or divorced, and with less qualification (secondary, primary) tend to have negative total balances.
+
+Problem 6: Window Function
+--------------------------
+
+# Question 20: Calculate the cumulative sum of 'NoOfContacts' for each 'Job' category, ordered by 'Age'?
+
+Query:
+SELECT Job, 
+       Age, 
+       NoOfContacts,
+       SUM(NoOfContacts) OVER(PARTITION BY Job ORDER BY Age) AS cumulative_sum
+FROM car_insurance_cold_calls
+ORDER BY Age DESC, Job LIMIT 30;
+
+Result:
+| Job         | Age | NoOfContacts | Cumulative_Sum |
+|-------------|-----|--------------|-----------------|
+| retired     | 95  | 17           | 522             |
+| retired     | 92  | 3            | 505             |
+| retired     | 87  | 1            | 502             |
+| retired     | 86  | 1            | 501             |
+| retired     | 86  | 1            | 501             |
+| retired     | 84  | 3            | 499             |
+| retired     | 83  | 10           | 496             |
+| retired     | 83  | 1            | 496             |
+| retired     | 82  | 3            | 485             |
+| retired     | 82  | 2            | 485             |
+| retired     | 81  | 1            | 480             |
+| retired     | 81  | 1            | 480             |
+| retired     | 81  | 2            | 480             |
+| housemaid   | 80  | 1            | 334             |
+| retired     | 80  | 2            | 476             |
+| retired     | 80  | 3            | 476             |
+| retired     | 80  | 8            | 476             |
+| retired     | 80  | 1            | 476             |
+| retired     | 80  | 1            | 476             |
+| retired     | 80  | 1            | 476             |
+| retired     | 80  | 3            | 476             |
+| retired     | 80  | 1            | 476             |
+| retired     | 79  | 2            | 456             |
+| retired     | 79  | 5            | 456             |
+| retired     | 79  | 3            | 456             |
+| NA          | 78  | 3            | 44              |
+| retired     | 78  | 3            | 446             |
+| retired     | 78  | 1            | 446             |
+| retired     | 78  | 1            | 446             |
+| management  | 77  | 2            | 2529            |
 
 
-
+Analysis:
+-- Notably, retired individuals, especially those aged 80 and above, received a significant number of contacts.
 
 
 

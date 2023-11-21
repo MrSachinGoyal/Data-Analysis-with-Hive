@@ -31,6 +31,7 @@ STORED AS TextFile
 LOCATION '/input_data/'
 TBLPROPERTIES ("skip.header.line.count"="1");
 
+
 Problem 2: Data Exploration
 ---------------------------
 
@@ -110,6 +111,7 @@ WHERE (carloan = 1) AND (HHInsurance = 1);
 
 Analysis:
 -- There are 322 customers in the dataset who have both a car loan and home insurance.
+
 
 Problem 3: Aggregations
 -----------------------
@@ -240,6 +242,7 @@ Result:
 Analysis:
 -- The average number of contacts is smaller for customers who bought car insurance compared to those who did not. This suggests that, on average, customers who eventually purchased car 
    insurance required fewer contacts during the campaign.
+
 
 Problem 4: Partitioning and Bucketing
 --------------------------------------
@@ -461,6 +464,7 @@ Found 10 items
 -rw-r--r--   2 aspiringde2306 hadoop      44142 2023-11-18 13:16 /user/hive/warehouse/hive_assignments.db/car_insurance_cold_calls_bucketed_new/000008_0
 -rw-r--r--   2 aspiringde2306 hadoop      17548 2023-11-18 13:16 /user/hive/warehouse/hive_assignments.db/car_insurance_cold_calls_bucketed_new/000009_0
 
+
 Problem 5: Optimized Joins
 ---------------------------
 
@@ -641,7 +645,7 @@ Result:
 | 32     | tertiary     | single     | 93036         |
 
 
--- These are bottom 5 records with respect to total balance
+-- These are bottom 5 records with respect to total balance 
 | t1.age | t1.education | t1.marital | total_balance |
 |--------|--------------|------------|---------------|
 | 31     | secondary    | divorced   | -1481         |
@@ -655,12 +659,14 @@ Analysis:
 -- Customers who are in their early 30s, specifically 31 and 32 years old, and are single with tertiary education have significantly high total balances, exceeding 90,000.
 -- Customers in their early 30s or mid-20s, either married or divorced, and with less qualification (secondary, primary) tend to have negative total balances.
 
+
 Problem 6: Window Function
 --------------------------
 
 # Question 20: Calculate the cumulative sum of 'NoOfContacts' for each 'Job' category, ordered by 'Age'?
 
 Query:
+-- retrieving only first 30 records
 SELECT Job, 
        Age, 
        NoOfContacts,
@@ -705,6 +711,242 @@ Result:
 
 Analysis:
 -- Notably, retired individuals, especially those aged 80 and above, received a significant number of contacts.
+
+# Question 21: Calculate the running average of 'Balance' for each 'Job' category, ordered by 'Age'.
+
+Query: 
+SELECT DISTINCT(Age),
+       Job,
+       ROUND(AVG(Balance) OVER(PARTITION BY Job ORDER BY Age),2) AS running_avg_balance
+FROM car_insurance_cold_calls
+ORDER BY Job;
+
+Analysis:
+-- Except customers with Job Title 'Admin', every Job category, running average balance is showing mix trend(increasing/decreasing) as Customer age increases.
+-- For Customers with Job Title 'Admin', running average balance increases as the Customer Age increases. It suggests a positive correlation between age and running average balance for these customers.
+
+# Question 22: Calculate the rank of 'Balance' within each 'Job' category, ordered by 'Balance' descending.
+
+SELECT Job,
+       RANK() OVER(ORDER BY AVG(Balance) DESC) AS balance_rank
+FROM car_insurance_cold_calls
+GROUP BY Job;
+
+Result:
+| Job           | Balance Rank |
+|---------------|--------------|
+| retired       | 1            |
+| management    | 2            |
+| self-employed | 3            |
+| entrepreneur  | 4            |
+| unemployed    | 5            |
+| student       | 6            |
+| technician    | 7            |
+| blue-collar   | 8            |
+| admin.        | 9            |
+| NA            | 10           |
+| housemaid     | 11           |
+| services      | 12           |
+
+Analysis:
+-- Based on the analysis, retired customers tend to have the highest average balance, while customers working in services have the lowest average balance among the job categories.
+
+
+Problem 7: Advanced Aggregations
+--------------------------------
+
+# Question 22: Find the job category with the highest number of car insurances.
+
+Query:
+SELECT Job, 
+       COUNT(CarInsurance) AS total_car_insurances
+FROM car_insurance_cold_calls
+WHERE CarInsurance = 1
+GROUP BY Job
+ORDER BY total_car_insurances DESC LIMIT 1;
+
+Result:
+| Job           | Total Car Insurances |
+|---------------|----------------------|
+| management    | 392                  |
+
+Analysis:
+-- Management professionals bought the highest number of car insurances.
+
+# Question 23: Which month has seen the highest number of last contacts?
+
+Query:
+SELECT LastContactMonth, 
+       SUM(NoOfContacts) AS monthly_contacts
+FROM car_insurance_cold_callS
+GROUP BY LastContactMonth
+ORDER BY monthly_contacts DESC LIMIT 1;
+
+Result:
+| Last Contact Month | Monthly Contacts   |
+|-------------------- |-------------------|
+| May                | 2416               |
+
+Analysis:
+-- The highest number of last contacts were seen in May.
+
+# Question 24: Calculate the ratio of the number of customers with car insurance to the number of customers without car insurance for each job category.
+
+Query:
+SELECT Job,
+       SUM(CASE WHEN CarInsurance = 1 THEN 1 ELSE 0 END)/ SUM(CASE WHEN CarInsurance = 0 THEN 1 ELSE 0 END) AS ratio
+FROM car_insurance_cold_calls
+GROUP BY Job;
+
+Result:
+| Job            | ratio            |
+|----------------|------------------|
+| NA             | 0.9              |
+| admin.         | 0.68             |
+| blue-collar    | 0.41             |
+| entrepreneur   | 0.41             |
+| housemaid      | 0.51             |
+| management     | 0.78             |
+| retired        | 1.42             |
+| self-employed  | 0.63             |
+| services       | 0.51             |
+| student        | 1.98             |
+| technician     | 0.63             |
+| unemployed     | 1.32             |
+
+Analysis:
+-- Ratio is highest for retired professionals, it means mumber of retired professionals who bought car insurance are higher than those who did not.
+
+# Question 25: Find out the 'Job' and 'Education' level combination which has the highest number of car insurances.
+
+Query:
+SELECT Job,
+       Education,
+       COUNT(CarInsurance) AS total_car_insurances
+FROM car_insurance_cold_calls
+WHERE CarInsurance = 1
+GROUP BY Job, Education
+ORDER BY total_car_insurances DESC LIMIT 1;
+
+Result:
+| Job         | Education | Total Car Insurances |
+|-------------|-----------|----------------------|
+| Management  | Tertiary  | 337                  |
+
+Analysis:
+-- Highly qualified management professionals bought the highest number of car insurances.
+
+# Question 26:  Calculate the average 'NoOfContacts' for each 'Outcome' and 'Job' combination.
+
+Query:
+SELECT Job,
+       Outcome,
+       ROUND(AVG(NoOfContacts), 2) AS avg_num_contacts
+FROM car_insurance_cold_calls
+GROUP BY Outcome, Job
+ORDER BY avg_num_contacts DESC;
+
+Result:
+| Job         | Outcome | Avg Num Contacts |
+|-------------|---------|------------------|
+| Housemaid   | NA      | 3.18             |
+| Management  | NA      | 3.13             |
+| Technician  | NA      | 3.03             |
+| Entrepreneur| NA      | 3.00             |
+| Blue-collar | NA      | 2.91             |
+| Services    | Other   | 2.82             |
+| NA          | NA      | 2.79             |
+| Self-employed| NA     | 2.77             |
+| Housemaid   | Failure | 2.67             |
+| Self-employed| Other  | 2.63             |
+| Services    | NA      | 2.61             |
+| Entrepreneur| Success | 2.50             |
+| Technician  | Other   | 2.43             |
+| Admin.      | NA      | 2.41             |
+| Management  | Other   | 2.30             |
+| Student     | Failure | 2.27             |
+| Retired     | Failure | 2.25             |
+| Unemployed  | NA      | 2.23             |
+| Retired     | NA      | 2.21             |
+| Technician  | Success | 2.16             |
+| Student     | NA      | 2.16             |
+| Admin.      | Other   | 2.10             |
+| Blue-collar | Other   | 2.07             |
+| Student     | Other   | 2.07             |
+| Unemployed  | Failure | 2.06             |
+| Management  | Failure | 2.02             |
+| Housemaid   | Other   | 2.00             |
+| Entrepreneur| Other   | 2.00             |
+| Technician  | Failure | 1.97             |
+| Management  | Success | 1.96             |
+| Retired     | Other   | 1.91             |
+| Self-employed| Success| 1.91             |
+| Services    | Failure | 1.87             |
+| Entrepreneur| Failure | 1.85             |
+| Blue-collar | Failure | 1.84             |
+| Student     | Success | 1.72             |
+| Unemployed  | Other   | 1.67             |
+| Unemployed  | Success | 1.67             |
+| Admin.      | Success | 1.64             |
+| Retired     | Success | 1.60             |
+| Self-employed| Failure| 1.56             |
+| Admin.      | Failure | 1.54             |
+| Housemaid   | Success | 1.50             |
+| Services    | Success | 1.45             |
+| Blue-collar | Success | 1.39             |
+
+Analysis:
+-- The data suggests that individuals with job titles such as housemaid, management, technician, and entrepreneur received an average of 3 calls. 
+   It's notable that in all cases, the outcome of the calls is unavailable.
+
+# Question 27. Determine the month with the highest total 'Balance' of customers.
+
+Query:
+SELECT LastContactMonth AS Month
+       SUM(Balance) AS total_monthly_balance
+FROM car_insurance_cold_calls
+GROUP BY LastContactMonth
+ORDER BY total_monthly_balance DESC LIMIT 1; 
+
+Result:
+|         Month      | Total Monthly Balance |
+|--------------------|------------------------|
+| May                | 1,175,862              |
+
+Analysis:
+-- Total balance of all the customers was highest in the May.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

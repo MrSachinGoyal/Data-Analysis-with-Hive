@@ -1,5 +1,5 @@
-Problem 1: Data Loading
-------------------------
+Data Loading
+------------
 
 # Question 1: Load the data into a Hive table. Create an external table with the given schema and load the data into the table from a text file or HDFS path.
 
@@ -32,8 +32,8 @@ LOCATION '/input_data/'
 TBLPROPERTIES ("skip.header.line.count"="1");
 
 
-Problem 2: Data Exploration
----------------------------
+Data Exploration
+-----------------
 
 # Question 2:  How many records are there in the dataset?
 
@@ -113,8 +113,8 @@ Analysis:
 -- There are 322 customers in the dataset who have both a car loan and home insurance.
 
 
-Problem 3: Aggregations
------------------------
+Aggregations
+------------
 
 # Question 7: What is the average, minimum, and maximum balance for each job category?
 
@@ -244,8 +244,8 @@ Analysis:
    insurance required fewer contacts during the campaign.
 
 
-Problem 4: Partitioning and Bucketing
---------------------------------------
+Partitioning and Bucketing
+--------------------------
 
 # Question 13: Create a partitioned table on 'Education' and 'Marital' status. Load data from the original table to this new partitioned table
 
@@ -465,8 +465,8 @@ Found 10 items
 -rw-r--r--   2 aspiringde2306 hadoop      17548 2023-11-18 13:16 /user/hive/warehouse/hive_assignments.db/car_insurance_cold_calls_bucketed_new/000009_0
 
 
-Problem 5: Optimized Joins
----------------------------
+Optimized Joins
+---------------
 
 # Question 17: Join the original table with the partitioned table and find out the average 'Balance' for each 'Job' and 'Education' level
 
@@ -660,8 +660,8 @@ Analysis:
 -- Customers in their early 30s or mid-20s, either married or divorced, and with less qualification (secondary, primary) tend to have negative total balances.
 
 
-Problem 6: Window Function
---------------------------
+Window Function
+---------------
 
 # Question 20: Calculate the cumulative sum of 'NoOfContacts' for each 'Job' category, ordered by 'Age'?
 
@@ -752,8 +752,8 @@ Analysis:
 -- Based on the analysis, retired customers tend to have the highest average balance, while customers working in services have the lowest average balance among the job categories.
 
 
-Problem 7: Advanced Aggregations
---------------------------------
+Advanced Aggregations
+---------------------
 
 # Question 22: Find the job category with the highest number of car insurances.
 
@@ -916,27 +916,287 @@ Result:
 Analysis:
 -- Total balance of all the customers was highest in the May.
 
+# Question 28: For customers who have both a car loan and home insurance, find out the average 'Balance' for each 'Education' level
+
+Query:
+SELECT Education,
+       ROUND(AVG(Balance),2) AS avg_balance
+FROM car_insurance_cold_calls
+WHERE (CarLoan = 1) AND (HHInsurance = 1)
+GROUP BY Education;
+
+Result:
+| Education | Average Balance |
+|------------|------------------|
+| NA         | 1,258.45         |
+| Primary    | 589.55           |
+| Secondary  | 688.1            |
+| Tertiary   | 1,163.12         |
+
+Analysis:
+-- Setting aside instances where education information is not available, the data indicates that individuals with higher qualifications, including both car loans and home insurance, 
+   exhibit the highest average balance."
+
+# Question 29: Identify the top 3 'Communication' types for customers with 'CarInsurance', and display their average 'NoOfContacts'.
+
+Query:
+SELECT Communication, 
+       ROUND(AVG(NoOfContacts),2) AS avg_num_contacts
+FROM car_insurance_cold_calls
+WHERE CarInsurance = 1
+GROUP BY Communication
+ORDER BY avg_num_contacts DESC LIMIT 3;
+
+Result:
+| Communication  | avg_num_contacts            |
+|----------------|-----------------------------|
+| telephone      | 2.72                        |
+| NA             | 2.34                        |
+| cellular       | 2.11                        |
+
+Analysis:
+-- Telephone communication emerged as preferred mode of communication for customers with CarInsurance.
+
+# Question 30: For customers who have a car loan, calculate the average balance for each job category.
+
+Query:
+SELECT Job,
+       ROUND(AVG(Balance)) AS avg_balance
+FROM car_insurance_cold_calls
+WHERE CarLoan = 1
+GROUP BY Job;
+
+Result:
+| job           | avg_balance |
+|---------------|-------------|
+| NA            | 1522.0      |
+| admin.        | 762.0       |
+| blue-collar   | 788.0       |
+| entrepreneur  | 845.0       |
+| housemaid     | 462.0       |
+| management    | 1337.0      |
+| retired       | 806.0       |
+| self-employed | 163.0       |
+| services      | 511.0       |
+| student       | 486.0       |
+| technician    | 624.0       |
+| unemployed    | 308.0       |
+
+Analysis
+-- Setting aside instances where education information is not available, Average balance is the highest for management professionals and lowest for self-employed professionals having car loan.
+
+# Question 31: Identify the top 5 job categories that have the most customers with a 'default', and show their average 'balance'.
+
+Query:
+SELECT Job,
+       COUNT(Default) AS defaulted_customers,
+       ROUND(AVG(Balance), 2) AS avg_balance
+FROM car_insurance_cold_calls 
+WHERE Default = 1
+GROUP BY Job
+ORDER BY defaulted_customers DESC LIMIT 5;
+
+Result:
+| job           | defaulted_customers | avg_balance |
+|---------------|----------------------|-------------|
+| blue-collar   | 18                   | -44.89      |
+| management    | 14                   | 18.79       |
+| technician    | 9                    | -65.33      |
+| entrepreneur  | 3                    | -153.67     |
+| housemaid     | 3                    | 410.67      |
+
+Analysis:
+-- Top 5 categories which have the most defaulted customers are blue-collar, management, technician, entrepreneur, housemaid. 
+   Four out of the five categories have negative average balances, indicating a higher likelihood of defaulting.
 
 
+Advanced Window Functions
+-------------------------
+
+# Question 32: Calculate the difference in 'NoOfContacts' between each customer and the customer with the next highest number of contacts in the same 'Job' category.
+
+Query:
+SELECT Job,
+       Id AS customer_id,
+       NoOfContacts,
+       ((LEAD(NoOfContacts, 1) OVER(PARTITION BY Job ORDER BY NoOfContacts)) - NoOfContacts) AS diff
+FROM car_insurance_cold_calls;
+
+Result:
+-- As there are 4000 records in the dataset, displaying only some records, choosen randomly from the output.
+
+| Job            |  customer_id           | NoOfContacts     |    diff              |
+|----------------|-----------------------|-------------------|----------------------|
+| services       | 3259                  | 5                 | 0                    |
+| services       | 1232                  | 5                 | 0                    |
+| services       | 910                   | 5                 | 0                    |
+| services       | 2142                  | 5                 | 0                    |
+| services       | 3879                  | 5                 | 0                    |
+| services       | 268                   | 5                 | 0                    |
+| services       | 3053                  | 5                 | 0                    |
+| services       | 2635                  | 5                 | 0                    |
+| services       | 3300                  | 5                 | 0                    |
+| services       | 1723                  | 5                 | 0                    |
+| services       | 1165                  | 5                 | 0                    |
+| services       | 2934                  | 5                 | 0                    |
+| services       | 1482                  | 5                 | 0                    |
+| services       | 3947                  | 5                 | 1                    |
+| services       | 2542                  | 6                 | 0                    |
+| services       | 2288                  | 6                 | 0                    |
+| services       | 1899                  | 6                 | 0                    |
+| services       | 2024                  | 6                 | 0                    |
+| services       | 2617                  | 6                 | 0                    |
+| services       | 3241                  | 6                 | 0                    |
+| services       | 2133                  | 6                 | 1                    |
+| services       | 1459                  | 7                 | 0                    |
+| services       | 2101                  | 7                 | 0                    |
+| services       | 2897                  | 7                 | 0                    |
+| services       | 1876                  | 7                 | 1                    |
+| services       | 689                   | 8                 | 0                    |
+| services       | 15                    | 8                 | 0                    |
+| services       | 1047                  | 8                 | 1                    |
+| services       | 3659                  | 9                 | 0                    |
+| services       | 2613                  | 9                 | 4                    |
+| services       | 905                   | 13                | 1                    |
+| services       | 610                   | 14                | 3                    |
+| services       | 2432                  | 17                | 8                    |
+| services       | 2944                  | 25                | 9                    |
+| services       | 366                   | 34                | NULL                 |
+| student        | 3874                  | 1                 | 0                    |
+| student        | 805                   | 1                 | 0                    |
+| student        | 1891                  | 1                 | 0                    |
+| student        | 193                   | 1                 | 0                    |
+| student        | 3932                  | 1                 | 0                    |
+| student        | 879                   | 1                 | 0                    |
+| student        | 471                   | 1                 | 0                    |
+| student        | 3423                  | 1                 | 0                    |
+| student        | 3062                  | 1                 | 0                    |
+| student        | 885                   | 1                 | 0                    |
+| student        | 2921                  | 1                 | 0                    |
+| student        | 797                   | 1                 | 0                    |
+| student        | 2423                  | 1                 | 0                    |
+| student        | 1128                  | 1                 | 0                    |
+| student        | 2417                  | 1                 | 0                    |
+| student        | 2545                  | 1                 | 0                    |
+| student        | 2414                  | 1                 | 0                    |
+| student        | 362                   | 1                 | 0                    |
+| student        | 1832                  | 1                 | 0                    |
+| student        | 2401                  | 1                 | 0                    |
+| student        | 63                    | 1                 | 0                    |
+| student        | 3434                  | 1                 | 0                    |
+| student        | 1150                  | 1                 | 0                    |
+| student        | 2894                  | 1                 | 0                    |
+| student        | 2579                  | 1                 | 0                    |
+| student        | 497                   | 1                 | 0                    |
+| student        | 2380                  | 1                 | 0                    |
+| student        | 1058                  | 1                 | 0                    |
+| student        | 3196                  | 1                 | 0                    |
+| student        | 1168                  | 1                 | 0                    |
+| student        | 2367                  | 1                 | 0                    |
+| student        | 3033                  | 1                 | 0                    |
+| student        | 2351                  | 1                 | 0                    |
+| student        | 667                   | 1                 | 0                    |
+| student        | 3029                  | 1                 | 0                    |
+| student        | 1191                  | 1                 | 0                    |
+| student        | 1871                  | 1                 | 0                    |
+| student        | 2314                  | 1                 | 0                    |
+| student        | 228                   | 1                 | 0                    |
+| student        | 297                   | 1                 | 0                    |
+| student        | 612                   | 1                 | 0                    |
+| student        | 3117                  | 1                 | 0                    |
+| student        | 3660                  | 1                 | 0                    |
+| student        | 2281                  | 1                 | 0                    |
+| student        | 3829                  | 1                 | 0                    |
+| student        | 2733                  | 1                 | 0                    |
+| student        | 926                   | 1                 | 0                    |
+| student        | 3012                  | 1                 | 0                    |
+| student        | 1591                  | 1                 | 0                    |
+| student        | 2723                  | 1                 | 0                    |
+| student        | 308                   | 1                 | 0                    |
+| student        | 1413                  | 1                 | 0                    |
+| student        | 3794                  | 1                 | 0                    |
+| student        | 1567                  | 1                 | 0                    |
+| student        | 3708                  | 1                 | 0                   
 
 
+# Question 33: For each customer, calculate the difference between their 'balance' and the average 'balance' of their 'job' category
+
+Query:
+SELECT Job,
+       Id AS customer_id,
+       ROUND(ABS(Balance - AVG(Balance) OVER(PARTITION BY Job)), 2) AS diff_btw_blnc_and_avg_blnc
+FROM car_insurance_cold_calls;
+
+Result:
+-- As there are 4000 records in the dataset, displaying only some records, choosen randomly from the output.
+
+| Job          | CustomerID | diff_Between_Balance_and_Avg_Balance |
+|--------------|------------|----------------------------------------|
+| blue-collar  | 1438       | 183.04                                 |
+| blue-collar  | 2459       | 1216.96                                |
+| blue-collar  | 2458       | 2014.04                                |
+| blue-collar  | 1445       | 255.04                                 |
+| blue-collar  | 3674       | 2405.04                                |
+| blue-collar  | 1449       | 862.96                                 |
+| blue-collar  | 1451       | 1215.96                                |
+| blue-collar  | 2447       | 772.96                                 |
+| blue-collar  | 35         | 481.04                                 |
+| blue-collar  | 2443       | 1634.04                                |
+| blue-collar  | 2440       | 104.96                                 |
+| blue-collar  | 36         | 916.96                                 |
+| blue-collar  | 1466       | 374.96                                 |
+| blue-collar  | 2438       | 1066.96                                |
+| entrepreneur | 1067       | 9901.85                                |
+| entrepreneur | 3193       | 25934.85                               |
+| entrepreneur | 745        | 1588.15                                |
+| entrepreneur | 3200       | 3872.85                                |
+| entrepreneur | 1239       | 1511.15                                |
+| entrepreneur | 1664       | 2094.15                                |
+| entrepreneur | 734        | 1061.15                                |
+| entrepreneur | 3205       | 1689.15                                |
+| entrepreneur | 3727       | 1301.15                                |
+| entrepreneur | 722        | 743.15                                 |
+| entrepreneur | 1978       | 1214.15                                |
+| entrepreneur | 1140       | 1999.85                                |
+| entrepreneur | 123        | 641.85                                 |
+| entrepreneur | 1016       | 1347.85                                |
+| entrepreneur | 2782       | 1391.15                                |
+| entrepreneur | 674        | 1096.15                                |
+| entrepreneur | 1663       | 1398.15                                |
+| entrepreneur | 1146       | 957.15                                 |
+| entrepreneur | 1885       | 1549.15                                |
+| entrepreneur | 2085       | 982.15                                 |
+| entrepreneur | 2881       | 1552.15                                |
+| entrepreneur | 846        | 1606.15                                |
+| entrepreneur | 1151       | 1889.15                                |
+| entrepreneur | 2267       | 4112.85                                |
+| entrepreneur | 1988       | 1376.15                                |
+| entrepreneur | 1929       | 4148.85                                |
+| entrepreneur | 3505       | 1342.15                                |
+| entrepreneur | 290        | 1689.15                                |
+| entrepreneur | 845        | 1660.15                                |
+| entrepreneur | 210        | 6801.85                                |
+| entrepreneur | 1820       | 1029.15                                |
+| entrepreneur | 3001       | 1370.15                                |
+| entrepreneur | 1161       | 1723.15                                |
+| entrepreneur | 1343       | 9842.85                                |
+| entrepreneur | 265        | 927.15                                 |
+| entrepreneur | 1661       | 1711.15                                |
+| entrepreneur | 3999       | 1031.15                                |
+| entrepreneur | 470        | 1234.15                                |
+| entrepreneur | 1083       | 1811.15                                |
+| entrepreneur | 1084       | 1585.15                                |
+| entrepreneur | 3311       | 1773.85                                |
+| entrepreneur | 611        | 604.15                                 |
+| entrepreneur | 1796       | 371.15                                 |
+| entrepreneur | 62         | 10197.85                               |
+| entrepreneur | 2873       | 1011.15                                |
+| entrepreneur | 2745       | 1038.15                                |
+| entrepreneur | 3953       | 1689.15                                |
+| entrepreneur | 1719       | 1627.15                                |
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+# Question 34: For each 'Job' category, find the customer who had the longest call duration.
 
 
 

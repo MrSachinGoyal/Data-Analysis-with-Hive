@@ -58,6 +58,7 @@ TBLPROPERTIES("skip.header.line.count" = "1");
 -- Loading data into the telecom_customer_data table from local file system
 LOAD DATA LOCAL INPATH 'file:///home/aspiringde2306/Telecom_customer_churn_data.csv' into TABLE telecom_customer_data;
 
+
 Data Exploration
 -----------------
 
@@ -120,10 +121,292 @@ SELECT ROUND(SUM(TotalCharges),2) AS total_charges_to_company
 FROM telecom_customer_data
 WHERE Churn = 'Yes';
 
-Analysis:
+Result:
 total_charges_to_company
 -------------------------
 2862926.9
+
+Analysis:
+-- From the above result, it can be concluded that company incurred a revenue loss of around 28.6 lakhs due to customers who have churned. 
+   This highlights the financial repercussions of customer churn on the company.
+
+
+Data Analysis
+-------------
+
+# Question 6: Write a HiveQL query to find the number of customers who have churned, grouped by their Contract type
+
+Query:
+SELECT Contract,
+       COUNT(*) AS churn_customers_count
+FROM telecom_customer_data
+WHERE Churn = 'Yes'
+GROUP BY Contract;
+
+Result:
+| Contract        | churn_customers_count |
+|-----------------|------------------------|
+| Month-to-month  | 1655                   |
+| One year        | 166                    |
+| Two year        | 48                     |
+
+Analysis:
+-- The highest number of customers who discontinued the service opted for the Month-to-month contract type.
+
+# Question 7: Write a HiveQL query to find the average MonthlyCharges for customers who have churned vs those who have not.
+
+Query:
+SELECT Churn,
+       ROUND(AVG(MonthlyCharges), 2) AS avg_monthly_charges
+FROM telecom_customer_data
+GROUP BY Churn;
+
+Result:
+| churn | avg_monthly_charges |
+|-------|----------------------|
+| No    | 61.27                |
+| Yes   | 74.44                |
+
+Anaysis:
+-- Above results shows that, on average, customers who have churned were paying more per month than those who did not churn.
+
+# Question 8: Determine the maximum, minimum, and average tenure of the customers.
+
+Query:
+SELECT MAX(tenure) AS customers_maximum_tenure,
+       MIN(tenure) AS customers_minimum_tenure,
+       ROUND(AVG(tenure), 2) AS customers_avg_tenure
+FROM telecom_customer_data;
+
+Result:
+| customers_maximum_tenure | customers_minimum_tenure | customers_avg_tenure |
+|--------------------------|--------------------------|-----------------------|
+| 72                       | 0                        | 32.37                 |
+
+Analysis:
+-- The maximum tenure of 72 months suggests that some customers have been with the company for a substantial period, indicating loyalty and potential satisfaction with the service.
+-- The minimum tenure of 0 months indicates that there are customers with very short tenure, possibly indicating dissatisfaction or early discontinuation.
+-- The average tenure of approximately 32.37 months suggests that, on average, customers have been using the company's service for about 2.5 years. 
+
+# Question 9: Find out which PaymentMethod is most popular among customers.
+
+Query:
+SELECT PaymentMethod,
+       COUNT(*) AS total_num_payments
+FROM telecom_customer_data
+GROUP BY PaymentMethod
+ORDER BY total_num_payments DESC LIMIT 1;
+
+Result:
+| paymentmethod      | total_num_payments |
+|---------------------|--------------------|
+| Electronic check    | 2365               |
+
+Analysis:
+-- Most customers were paying via Electronic check.
+
+# Question 10: Analyze the relationship between PaperlessBilling and churn rate.
+
+Query:
+SELECT PaperlessBilling, 
+       ROUND((COUNT(*) * 100)/(SELECT COUNT(*) FROM telecom_customer_data WHERE Churn = 'Yes'), 2) AS churn_rate
+FROM telecom_customer_data
+WHERE Churn = 'Yes'
+GROUP BY PaperlessBilling;
+
+Result:
+| paperlessbilling | churn_rate |
+|-------------------|------------|
+| No                | 25.09      |
+| Yes               | 74.91      |
+
+Analysis:
+-- Churn rate is higher with customers who opted for Paperless billing.
+
+
+Partitioning
+------------
+
+# Question 11: Create a partitioned table by Contract and load the data from the original table.
+
+-- To enable dynamic partitioning in Hive, set below mentioned property:
+SET hive.exec.dynamic.partition = true;
+SET hive.exec.dynamic.partition.mode = nonstrict;
+
+Query:
+CREATE TABLE telecom_customer_data_partitioned (
+  customerID STRING,
+  gender STRING,
+  SeniorCitizen INT,
+  Partner STRING,
+  Dependents STRING,
+  tenure INT,
+  PhoneService STRING,
+  MultipleLines STRING,
+  InternetService STRING,
+  OnlineSecurity STRING,
+  OnlineBackup STRING,
+  DeviceProtection STRING,
+  TechSupport STRING,
+  StreamingTV STRING,
+  StreamingMovies STRING,
+  PaperlessBilling STRING,
+  PaymentMethod STRING,
+  MonthlyCharges DOUBLE,
+  TotalCharges DOUBLE,
+  Churn STRING
+)
+PARTITIONED BY (Contract STRING)
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY ','
+STORED AS TEXTFILE
+TBLPROPERTIES("skip.header.line.count" = "1");
+
+-- Loading the data into the telecom_customer_data_partitioned table
+INSERT OVERWRITE TABLE telecom_customer_data_partitioned PARTITION (Contract) 
+SELECT customerID, gender, SeniorCitizen, Partner, Dependents, tenure,
+       PhoneService, MultipleLines, InternetService, OnlineSecurity,
+       OnlineBackup, DeviceProtection, TechSupport, StreamingTV,
+       StreamingMovies, PaperlessBilling, PaymentMethod, MonthlyCharges,
+       TotalCharges, Churn, Contract
+FROM telecom_customer_data;
+
+Analysis:
+-- We can see that in hive warehouse directory, parititions have been created for each Contract Type.
+
+aspiringde2306@hadoop-cluster-m:~$ hdfs dfs -ls /user/hive/warehouse/hive_assignments.db/telecom_customer_data_partitioned
+Found 3 items
+drwxr-xr-x   - aspiringde2306 hadoop          0 2023-11-22 12:53 /user/hive/warehouse/hive_assignments.db/telecom_customer_data_partitioned/contract=Month-to-month
+drwxr-xr-x   - aspiringde2306 hadoop          0 2023-11-22 12:53 /user/hive/warehouse/hive_assignments.db/telecom_customer_data_partitioned/contract=One year
+drwxr-xr-x   - aspiringde2306 hadoop          0 2023-11-22 12:53 /user/hive/warehouse/hive_assignments.db/telecom_customer_data_partitioned/contract=Two year
+
+# Question 12: Write a HiveQL query to find the number of customers who have churned in each Contract type using the partitioned table.
+
+Query:
+SELECT Contract,
+       COUNT(*) AS num_churned_customers
+FROM telecom_customer_data_partitioned
+WHERE Churn = 'Yes'
+GROUP BY Contract;
+
+Result:
+| contract        | num_churned_customers |
+|-----------------|------------------------|
+| Month-to-month  | 1655                   |
+| One year        | 166                    |
+| Two year        | 48                     |
+
+Analysis:
+-- The majority of churned customers are those who chose the Month-to-month contract.
+
+# Question 13: Find the average MonthlyCharges for each type of Contract using the partitioned table.
+
+Query:
+SELECT Contract,
+       ROUND(AVG(MonthlyCharges), 2) AS avg_monthly_charges
+FROM telecom_customer_data_partitioned
+GROUP BY Contract;
+       
+Result:
+| Contract        | Avg Monthly Charges |
+|-----------------|----------------------|
+| Month-to-month  | 66.41                |
+| One year        | 65.05                |
+| Two year        | 60.8                 |
+
+Analysis:
+--  It highlights that customers with a month-to-month contract have a higher average monthly charge compared to customers with one-year or two-year contracts. 
+    This insight is valuable for understanding the pricing dynamics across different contract durations.
+
+# Question 14: Determine the maximum tenure in each Contract type partition.
+
+Query:
+SELECT Contract,
+       MAX(tenure) AS maximum_tenure
+FROM telecom_customer_data_partitioned
+GROUP BY Contract;
+
+Result:
+| Contract        | Maximum Tenure |
+|-----------------|-----------------|
+| Month-to-month  | 72              |
+| One year        | 72              |
+| Two year        | 72              |
+
+Analysis:
+-- Irrespective of Contract type, the maximum tenure of customers is 72 months. This consistency shows uniformity in customer satisfaction and loyalty across all contract types.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

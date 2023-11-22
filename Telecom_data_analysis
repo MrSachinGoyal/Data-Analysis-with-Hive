@@ -337,6 +337,98 @@ Analysis:
 -- Irrespective of Contract type, the maximum tenure of customers is 72 months. This consistency shows uniformity in customer satisfaction and loyalty across all contract types.
 
 
+Bucketing
+---------
+
+# Question 15: Create a bucketed table by tenure into 6 buckets.
+
+Query:
+-- To use Bucketing in hive, enable below property:
+SET hive.enforce.bucketing = true;
+
+CREATE TABLE telecom_data_bucketed (
+  customerID STRING,
+  gender STRING,
+  SeniorCitizen INT,
+  Partner STRING,
+  Dependents STRING,
+  tenure INT,
+  PhoneService STRING,
+  MultipleLines STRING,
+  InternetService STRING,
+  OnlineSecurity STRING,
+  OnlineBackup STRING,
+  DeviceProtection STRING,
+  TechSupport STRING,
+  StreamingTV STRING,
+  StreamingMovies STRING,
+  Contract STRING,
+  PaperlessBilling STRING,
+  PaymentMethod STRING,
+  MonthlyCharges DOUBLE,
+  TotalCharges DOUBLE,
+  Churn STRING
+)
+CLUSTERED BY (tenure) INTO 6 BUCKETS
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY ','
+STORED AS TEXTFILE
+TBLPROPERTIES("skip.header.line.count" = "1");
+
+# Question 16: Load the data from the original table into the bucketed table.
+
+Query:
+-- Loading the data into the telecom_data_bucketed table
+INSERT OVERWRITE TABLE telecom_data_bucketed SELECT * FROM telecom_customer_data;
+
+Result:
+-- We can see that 6 buckets have been created in hive warehouse directory.
+
+aspiringde2306@hadoop-cluster-m:~$ hdfs dfs -ls /user/hive/warehouse/hive_assignments.db/telecom_data_bucketed
+Found 6 items
+-rw-r--r--   2 aspiringde2306 hadoop     188348 2023-11-22 14:37 /user/hive/warehouse/hive_assignments.db/telecom_data_bucketed/000000_0
+-rw-r--r--   2 aspiringde2306 hadoop     297665 2023-11-22 14:37 /user/hive/warehouse/hive_assignments.db/telecom_data_bucketed/000001_0
+-rw-r--r--   2 aspiringde2306 hadoop     133881 2023-11-22 14:37 /user/hive/warehouse/hive_assignments.db/telecom_data_bucketed/000002_0
+-rw-r--r--   2 aspiringde2306 hadoop     122118 2023-11-22 14:37 /user/hive/warehouse/hive_assignments.db/telecom_data_bucketed/000003_0
+-rw-r--r--   2 aspiringde2306 hadoop      80105 2023-11-22 14:37 /user/hive/warehouse/hive_assignments.db/telecom_data_bucketed/000004_0
+-rw-r--r--   2 aspiringde2306 hadoop     149523 2023-11-22 14:37 /user/hive/warehouse/hive_assignments.db/telecom_data_bucketed/000005_0
+
+# Question 17: Write a HiveQL query to find the average MonthlyCharges for customers in each bucket.
+
+Query: 
+SELECT 'Bucket_1' AS Bucket_1,
+       ROUND(AVG(MonthlyCharges)) AS avg_monthly_charges
+FROM telecom_data_bucketed
+WHERE (tenure % 6) = 0
+GROUP BY 'Bucket_1';
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

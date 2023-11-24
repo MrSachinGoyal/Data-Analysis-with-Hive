@@ -395,12 +395,244 @@ Found 6 items
 
 # Question 17: Write a HiveQL query to find the average MonthlyCharges for customers in each bucket.
 
-Query: 
-SELECT 'Bucket_1' AS Bucket_1,
-       ROUND(AVG(MonthlyCharges)) AS avg_monthly_charges
+Query:
+WITH CTE AS 
+(SELECT MonthlyCharges,
+        CASE
+            WHEN (tenure % 6) = 0 THEN 'Bucket_1'
+            WHEN (tenure % 6) = 1 THEN 'Bucket_2'
+            WHEN (tenure % 6) = 2 THEN 'Bucket_3'
+            WHEN (tenure % 6) = 3 THEN 'Bucket_4'
+            WHEN (tenure % 6) = 4 THEN 'Bucket_5'
+            WHEN (tenure % 6) = 5 THEN 'Bucket_6'
+        END AS Bucket
 FROM telecom_data_bucketed
-WHERE (tenure % 6) = 0
-GROUP BY 'Bucket_1';
+)
+
+SELECT Bucket,
+       ROUND(AVG(MonthlyCharges)) AS avg_monthly_charges
+FROM CTE
+GROUP BY Bucket;
+
+Result:
+| Bucket      | Avg_Monthly_Charges |
+|-------------|----------------------|
+| Bucket_1    | 69.0                 |
+| Bucket_2    | 60.0                 |
+| Bucket_3    | 65.0                 |
+| Bucket_4    | 64.0                 |
+| Bucket_5    | 66.0                 |
+| Bucket_6    | 66.0                 |
+
+Analysis:
+-- The results indicate that Bucket_1 has the highest average monthly charges among all buckets, suggesting that customers in this category tend to have higher monthly charges compared to others.
+
+# Question 18: Find the highest TotalCharges in each tenure bucket.
+
+Query:
+WITH CTE AS 
+(SELECT TotalCharges,
+        CASE
+            WHEN (tenure % 6) = 0 THEN 'Bucket_1'
+            WHEN (tenure % 6) = 1 THEN 'Bucket_2'
+            WHEN (tenure % 6) = 2 THEN 'Bucket_3'
+            WHEN (tenure % 6) = 3 THEN 'Bucket_4'
+            WHEN (tenure % 6) = 4 THEN 'Bucket_5'
+            WHEN (tenure % 6) = 5 THEN 'Bucket_6'
+        END AS Bucket
+FROM telecom_data_bucketed
+)
+
+SELECT Bucket,
+       MAX(TotalCharges) AS highest_total_charges
+FROM CTE
+GROUP BY Bucket;
+
+Result:
+| Bucket     | highest_total_charges     |
+|------------|---------------------------|
+| Bucket_1   | 8684.8                    |
+| Bucket_2   | 7839.85                   |
+| Bucket_3   | 8035.95                   |
+| Bucket_4   | 8182.85                   |
+| Bucket_5   | 8250.0                    |
+| Bucket_6   | 8564.75                   |
+
+Analysis:
+-- The result indicates that Bucket_1 has the maximum total charges among all buckets.
+
+
+Performance Optimization with Joins 
+-----------------------------------
+
+# Question 19: Write HiveQL queries to join the customer churn table and the demographics table on customerID using different types of joins - common join, map join, bucket map join, 
+  and sorted merge bucket join. Observe and document the performance of each join type.
+
+Query:
+
+-- Creating bucketed table for both datasets - customer_churn and customer_demographics
+
+CREATE TABLE customer_demographics_bucketed (
+  customerID STRING,
+  City STRING,
+  Lat DOUBLE,
+  Long DOUBLE,
+  country STRING,
+  iso2 STRING,
+  State STRING
+)
+CLUSTERED BY (customerID) SORTED BY (customerID) INTO 4 BUCKETS
+STORED AS ORC
+TBLPROPERTIES("skip.header.line.count" = "1");
+
+CREATE TABLE telecom_customer_data_bucketed (
+  customerID STRING,
+  gender STRING,
+  SeniorCitizen INT,
+  Partner STRING,
+  Dependents STRING,
+  tenure INT,
+  PhoneService STRING,
+  MultipleLines STRING,
+  InternetService STRING,
+  OnlineSecurity STRING,
+  OnlineBackup STRING,
+  DeviceProtection STRING,
+  TechSupport STRING,
+  StreamingTV STRING,
+  StreamingMovies STRING,
+  Contract STRING,
+  PaperlessBilling STRING,
+  PaymentMethod STRING,
+  MonthlyCharges DOUBLE,
+  TotalCharges DOUBLE,
+  Churn STRING
+)
+CLUSTERED BY (customerID) SORTED BY (customerID) INTO 4 BUCKETS
+STORED AS ORC
+TBLPROPERTIES("skip.header.line.count" = "1");
+
+-- Loading data into the tables
+INSERT OVERWRITE TABLE customer_demographics_bucketed SELECT * FROM customer_demographics;
+INSERT OVERWRITE TABLE telecom_customer_data_bucketed SELECT * FROM telecom_customer_data;
+
+-- COMMON JOIN
+SELECT *
+FROM customer_demographics_bucketed cd
+INNER JOIN telecom_customer_data_bucketed tcd
+ON cd.customerID = tcd.customerID;
+
+Execution time -- Time taken: 20.654 seconds, Fetched: 7043 row(s)
+
+-- MAP JOIN 
+SET hive.auto.convert.join = true;
+SET hive.mapjoin.smalltable.filesize = 50000000;
+
+SELECT *
+FROM customer_demographics_bucketed cd
+INNER JOIN telecom_customer_data_bucketed tcd
+ON cd.customerID = tcd.customerID;
+
+Execution time -- Time taken: 20.434 seconds, Fetched: 7043 row(s)
+
+-- BUCKET MAP JOIN 
+SET hive.optimize.bucketmapjoin = true;
+
+SELECT *
+FROM customer_demographics_bucketed cd
+INNER JOIN telecom_customer_data_bucketed tcd
+ON cd.customerID = tcd.customerID;
+
+Execution time -- Time taken: 19.933 seconds, Fetched: 7043 row(s)
+
+-- SORTED MERGE BUCKET JOIN
+SET hive.auto.convert.sortmerge.join = true;
+SET hive.optimize.bucketmapjoin.sortedmerge = true;
+
+Execution time -- Time taken: 20.524 seconds, Fetched: 7043 row(s)
+
+Analysis:
+-- The differences in execution times are relatively small in this example, likely because the dataset is not very large.
+-- For larger datasets, the benefits of map joins, bucket map joins, and sorted merge bucket joins become more pronounced. 
+
+
+Advanced Analysis
+-----------------
+
+# Question 20: Find the distribution of PaymentMethod among churned customers.
+
+Query:
+SELECT PaymentMethod,
+       COUNT(*) AS count
+FROM telecom_customer_data
+WHERE Churn = 'Yes'
+GROUP BY PaymentMethod;
+
+Result:
+paymentmethod            | count
+--------------------------|-------
+Bank transfer (automatic) | 258
+Credit card (automatic)   | 232
+Electronic check          | 1071
+Mailed check              | 308
+
+Analysis:
+-- Electronic Check is the most preferred payment option among churned customers.
+
+# Question 21: Calculate the churn rate (percentage of customers who left) for each InternetService category.
+
+Query:
+SELECT InternetService, 
+       ROUND(((COUNT(*) * 100)/ (SELECT COUNT(*) FROM telecom_customer_data WHERE Churn = 'Yes')), 2) AS churn_rate
+FROM telecom_customer_data
+WHERE Churn = 'Yes'
+GROUP BY InternetService;
+
+Result:
+internetservice | churn_rate
+----------------|-----------
+DSL             | 24.56
+Fiber optic     | 69.4
+No              | 6.05
+
+Analysis:
+-- The churn rate is the highest among churned customers who opted for DSL Internet Service.
+
+# Question 22: Find the number of customers who have no dependents and have churned, grouped by Contract type.
+
+Query:
+SELECT Contract,
+       COUNT(*) AS count
+FROM telecom_customer_data
+WHERE Dependents = 'No' AND Churn = 'Yes'
+GROUP BY Contract;
+
+Result:
+contract        | count
+----------------|-------
+Month-to-month  | 1396
+One year        | 117
+Two year        | 30
+
+Analysis:
+-- The result clearly states that the highest number of customers who have no dependents and have churned are from the Month-to-month contract type.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

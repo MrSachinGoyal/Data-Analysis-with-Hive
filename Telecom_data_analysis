@@ -617,6 +617,201 @@ Two year        | 30
 Analysis:
 -- The result clearly states that the highest number of customers who have no dependents and have churned are from the Month-to-month contract type.
 
+# Question 23: Find the top 5 tenure lengths that have the highest churn rates.
+
+Query:
+SELECT tenure, 
+       ROUND((100 * COUNT(*))/ (SELECT COUNT(*) FROM telecom_customer_data WHERE Churn = 'Yes'), 2) AS churn_rate
+FROM telecom_customer_data
+WHERE Churn = 'Yes'
+GROUP BY tenure;
+
+Result:
+| tenure | churn_rate |
+|--------|------------|
+|   1    |   20.33    |
+|   2    |    6.58    |
+|   3    |    5.03    |
+|   4    |    4.44    |
+|   5    |    3.42    |
+|   6    |    2.14    |
+|   7    |    2.73    |
+|   8    |    2.25    |
+|   9    |    2.46    |
+|  10    |    2.41    |
+|  11    |    1.66    |
+|  12    |    2.03    |
+|  13    |    2.03    |
+|  14    |    1.28    |
+|  15    |    1.98    |
+|  16    |    1.5     |
+|  17    |    1.39    |
+|  18    |    1.28    |
+|  19    |    1.02    |
+|  20    |    0.96    |
+|  21    |    0.91    |
+|  22    |    1.44    |
+|  23    |    0.7     |
+|  24    |    1.23    |
+|  25    |    1.23    |
+|  26    |    0.8     |
+|  27    |    0.7     |
+|  28    |    0.64    |
+|  29    |    0.8     |
+|  30    |    0.86    |
+|  31    |    0.86    |
+|  32    |    1.02    |
+|  33    |    0.75    |
+|  34    |    0.64    |
+|  35    |    0.8     |
+|  36    |    0.54    |
+|  37    |    0.8     |
+|  38    |    0.7     |
+|  39    |    0.75    |
+|  40    |    0.7     |
+|  41    |    0.75    |
+|  42    |    0.75    |
+|  43    |    0.8     |
+|  44    |    0.32    |
+|  45    |    0.32    |
+|  46    |    0.64    |
+|  47    |    0.75    |
+|  48    |    0.48    |
+|  49    |    0.8     |
+|  50    |    0.54    |
+|  51    |    0.43    |
+|  52    |    0.43    |
+|  53    |    0.75    |
+|  54    |    0.7     |
+|  55    |    0.48    |
+|  56    |    0.54    |
+|  57    |    0.43    |
+|  58    |    0.59    |
+|  59    |    0.43    |
+|  60    |    0.32    |
+|  61    |    0.43    |
+|  62    |    0.27    |
+|  63    |    0.21    |
+|  64    |    0.21    |
+|  65    |    0.48    |
+|  66    |    0.7     |
+|  67    |    0.54    |
+|  68    |    0.48    |
+|  69    |    0.43    |
+|  70    |    0.59    |
+|  71    |    0.32    |
+|  72    |    0.32    |
+
+Analysis:
+-- Among the churned customers, the result states that customer attrition is the highest for those who use the service for just 1 month. This information can be valuable for 
+   understanding the pattern of churn and potentially taking measures to address issues that may be causing customers to leave early in their tenure.
+
+# Question 24: Calculate the average MonthlyCharges for customers who have PhoneService and have churned, grouped by Contract type.
+
+Query:
+SELECT Contract,
+       ROUND(AVG(MonthlyCharges), 2) AS avg_monthly_charges
+FROM telecom_customer_data
+WHERE PhoneService = 'Yes' AND Churn = 'Yes'
+GROUP BY Contract;
+
+Result:
+|    contract    | avg_monthly_charges |
+|-----------------|----------------------|
+| Month-to-month  |        76.74         |
+| One year        |        88.6          |
+| Two year        |        89.2          |
+
+Analysis:
+-- The result shows that among the churned customers with PhoneService, those with a month-to-month contract have the lowest average monthly charges, 
+   while customers with two-year contracts have the highest average monthly charges. 
+
+# Question 25: Identify which InternetService type is most associated with churned customers.
+
+Query:
+SELECT InternetService,
+       COUNT(*) AS churned_customers_count
+FROM telecom_customer_data
+GROUP BY InternetService
+ORDER BY churned_customers_count DESC LIMIT 1;
+
+Result:
+| InternetService | ChurnedCustomersCount |
+|------------------|------------------------|
+| Fiber optic      |          3096          |
+
+Analysis:
+-- The outcome indicates that the majority of customers who terminated the service belonged to the Fiber optic Internet service category.
+
+# Question 26: Determine if customers with a partner have a lower churn rate compared to those without.
+
+Query:
+SELECT Partner,
+       ROUND(100 * COUNT(*) / (SELECT COUNT(*) FROM telecom_customer_data WHERE Churn = 'Yes'), 2) AS churn_rate
+FROM telecom_customer_data
+WHERE Churn = 'Yes'
+GROUP BY Partner;
+
+Result:
+| Partner | ChurnRate |
+|---------|-----------|
+|   No    |   64.21   |
+|   Yes   |   35.79   |
+
+Analysis:
+-- The outcome indicates that customers without partners have a higher churn rate compared to those with partners. 
+
+# Question 27: Analyze the relationship between MultipleLines and churn rate.
+
+Query:
+SELECT MultipleLines,
+       ROUND(100 * COUNT(*) / (SELECT COUNT(*) FROM telecom_customer_data WHERE Churn = 'Yes'), 2) AS churn_rate
+FROM telecom_customer_data
+WHERE Churn = 'Yes'
+GROUP BY MultipleLines;
+
+Result:
+| MultipleLines     | ChurnRate |
+|---------------------|-----------|
+| No                  |   45.43   |
+| No phone service    |    9.1    |
+| Yes                |   45.48   |
+
+Analysis: 
+-- Customers without phone service have the lowest churn rate. Customers with or without Multiple Lines have relatively similar churn rates.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
